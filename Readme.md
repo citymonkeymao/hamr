@@ -179,7 +179,7 @@ Note that your Comparator class must extend FieldComparator and returns only 1,0
     	}
     }
 ###SetSumCounter
-SetSumCounter is used to count how many identical value of a field presented in a reduce function. The ipcount in [example][exampleCode] code illustrate usage of this counter: you have got a web site's visitor data which contain a url and user's IP. And you want to know how many indentical IP had visited each url. This is how SetSumCounter is used in IpCountBean:
+SetSumCounter is used to count how many different value of a field presented in a reduce function. The ipcount in [example][exampleCode] code illustrate usage of this counter: you have got a web site's visitor data which contain a url and user's IP. And you want to know how many indentical IP had visited each url. This is how SetSumCounter is used in IpCountBean:
 
     @Counters(counters = {SetSumCounter.class})
     public class IpCountBean extends AnnotedBean{
