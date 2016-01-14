@@ -246,3 +246,5 @@ There getReduceField() function will return a Map object containing fields which
 
 
 [exampleCode]:https://github.com/citymonkeymao/harm-examples
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/citymonkeymao/hamr/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
