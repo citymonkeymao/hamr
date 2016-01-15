@@ -141,10 +141,10 @@ Note that your Comparator class must extend FieldComparator and returns only 1,0
 		return ret;
 	}
     }
-
+```
   The last work is to assemble these things together into a job
   
-
+```java
     public class VisitTimeJob {
 	public static void main(String[] args) throws Exception {
 		Configuration conf = new Configuration();
