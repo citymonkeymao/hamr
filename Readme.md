@@ -247,4 +247,4 @@ There getReduceField() function will return a Map object containing fields which
 
 [exampleCode]:https://github.com/citymonkeymao/harm-examples
 
-[![tracking](http://porchoni.appspot.com/codes/track?id=5201220696276992)]
+[![tracking](http://getnotify.com/white.asp?eid=1483a959c3719abb)]
