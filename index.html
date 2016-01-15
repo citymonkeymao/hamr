@@ -80,104 +80,100 @@
 
 <p>HAMR makes it much more simple. First put the fields which used to exist in key and value class into a class which extended AnnotedBean class.</p>
 
-<pre><code>@Generator(keyGeneratorClass = VisitKeyGenerator.class)
-@Counters(counters = { VisitTimeCounter.class })
-public class VisitBean extends AnnotedBean {
- @SortField(level = 3)
- @GroupField
- private String url;
+<div class="highlight highlight-source-java"><pre>    @Generator(keyGeneratorClass <span class="pl-k">=</span> <span class="pl-smi">VisitKeyGenerator</span><span class="pl-k">.</span>class)
+    @Counters(counters <span class="pl-k">=</span> { <span class="pl-smi">VisitTimeCounter</span><span class="pl-k">.</span>class })
+    <span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-en">VisitBean</span> <span class="pl-k">extends</span> <span class="pl-e">AnnotedBean</span> {
+     <span class="pl-k">@SortField</span>(<span class="pl-c1">level</span> <span class="pl-k">=</span> <span class="pl-c1">3</span>)
+     <span class="pl-k">@GroupField</span>
+     <span class="pl-k">private</span> <span class="pl-smi">String</span> url;
 
- @SortField(level = 2)
- @GroupField
- private String sessionId;
+     <span class="pl-k">@SortField</span>(<span class="pl-c1">level</span> <span class="pl-k">=</span> <span class="pl-c1">2</span>)
+     <span class="pl-k">@GroupField</span>
+     <span class="pl-k">private</span> <span class="pl-smi">String</span> sessionId;
 
- @SortField(level = 1)
- private Long messageTime;
+     <span class="pl-k">@SortField</span>(<span class="pl-c1">level</span> <span class="pl-k">=</span> <span class="pl-c1">1</span>)
+     <span class="pl-k">private</span> <span class="pl-smi">Long</span> messageTime;
 
- @SkipIO
- private Long totalTime;
-}
-</code></pre>
+     <span class="pl-k">@SkipIO</span>
+     <span class="pl-k">private</span> <span class="pl-smi">Long</span> totalTime;
+    }</pre></div>
 
 <p>Let me first explain annotations in each field. These annotations tell HAMR how to sort and group beans into reducers. @SortField denote the field should be used to sort. The parameter level denotes the priority of that field. The higher the level, the higher the priority. In this <a href="https://github.com/citymonkeymao/harm-examples">example</a>, url has the highest priority in sorting, which means compare result of sessionId will have no effect unless two beans have the same url.On default, FieldComparator is used to compare fields. If you want to custom your field comparator, you can assign it as a parameter of @SortField. For example:</p>
 
-<pre><code>@SortField(comparator=yourComparator.class)
-</code></pre>
+<div class="highlight highlight-source-java"><pre>    @SortField(comparator<span class="pl-k">=</span>yourComparator<span class="pl-k">.</span>class)</pre></div>
 
 <p>Note that your Comparator class must extend FieldComparator and returns only 1,0 or -1 in compare function.
   The field totalTime is used to collect count result and is not read from mapper input. Thus, there is no necessary to pass it from mapper to reducer. <a href="https://github.com/SkipIO" class="user-mention">@SkipIO</a> is used to denote that this field need not to be transferred.</p>
 
 <p>Reducer will receive these beans and pass them to Counters. Counters define what to do in reduce function. And different Counters may accomplish different jobs in reduce side. Thus, a reducer may contain several Counters. Counter classes are assigned by annotation <a href="https://github.com/Counters" class="user-mention">@Counters</a> on the subclasses of AnnotedBean. In this <a href="https://github.com/citymonkeymao/harm-examples">example</a>, there is only one counter that is written by user. The usage of some general Counters will be described in the next section.</p>
 
-<p>Lets have a look how Counter classes look like
-  public class VisitTimeCounter extends Counter {
-    private Long firstTime;
-    private Long lastTime;</p>
+<p>Lets have a look how Counter classes look like</p>
 
-<pre><code>@SuppressWarnings("rawtypes")
-public VisitTimeCounter(Context context) {
-    super(context);
-}
+<div class="highlight highlight-source-java"><pre>  <span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-en">VisitTimeCounter</span> <span class="pl-k">extends</span> <span class="pl-e">Counter</span> {
+    <span class="pl-k">private</span> <span class="pl-smi">Long</span> firstTime;
+    <span class="pl-k">private</span> <span class="pl-smi">Long</span> lastTime;
 
-@Override
-public void count(AnnotedBean ab) {
-    Long time = ((VisitBean) ab).getMessageTime();
-    if (firstTime == null) {
-        firstTime = time;
+    <span class="pl-k">@SuppressWarnings</span>(<span class="pl-s"><span class="pl-pds">"</span>rawtypes<span class="pl-pds">"</span></span>)
+    <span class="pl-k">public</span> <span class="pl-en">VisitTimeCounter</span>(<span class="pl-smi">Context</span> <span class="pl-v">context</span>) {
+        <span class="pl-v">super</span>(context);
     }
-    lastTime = time;
-}
 
-@Override
-public boolean end(AnnotedBean ret) {
-    if (firstTime != null &amp;&amp; lastTime != null) {
-        ((VisitBean) ret).setTotalTime(lastTime - firstTime);
-        return true;
-    } else {
-        return false;
+    <span class="pl-k">@Override</span>
+    <span class="pl-k">public</span> <span class="pl-k">void</span> <span class="pl-en">count</span>(<span class="pl-smi">AnnotedBean</span> <span class="pl-v">ab</span>) {
+        <span class="pl-smi">Long</span> time <span class="pl-k">=</span> ((<span class="pl-smi">VisitBean</span>) ab)<span class="pl-k">.</span>getMessageTime();
+        <span class="pl-k">if</span> (firstTime <span class="pl-k">==</span> <span class="pl-c1">null</span>) {
+            firstTime <span class="pl-k">=</span> time;
+        }
+        lastTime <span class="pl-k">=</span> time;
     }
-}
-}
-</code></pre>
+
+    <span class="pl-k">@Override</span>
+    <span class="pl-k">public</span> <span class="pl-k">boolean</span> <span class="pl-en">end</span>(<span class="pl-smi">AnnotedBean</span> <span class="pl-v">ret</span>) {
+        <span class="pl-k">if</span> (firstTime <span class="pl-k">!=</span> <span class="pl-c1">null</span> <span class="pl-k">&amp;&amp;</span> lastTime <span class="pl-k">!=</span> <span class="pl-c1">null</span>) {
+            ((<span class="pl-smi">VisitBean</span>) ret)<span class="pl-k">.</span>setTotalTime(lastTime <span class="pl-k">-</span> firstTime);
+            <span class="pl-k">return</span> <span class="pl-c1">true</span>;
+        } <span class="pl-k">else</span> {
+            <span class="pl-k">return</span> <span class="pl-c1">false</span>;
+        }
+    }
+    }</pre></div>
 
 <p>There is two functions need to be rewritten in Counter class: count() and end(). Reducer will give every AnnotedBean from shuffle to each Counter by invoking their count function. At the end, Reducer will call end function of each Counter. The input of end function is the last non-null AnnotedBean from shuffle phrase. The returned boolean value tells the Reducer wether to write the result or not (counter can call context.write as the context is passed to counter in their construction method).If the result need not be write by reducer, the function end() should return false.
   Note that Counters are going to be a variable in reduce function, thus, the Counters will be built for each time reduce function is called. </p>
 
 <p>As one shall suppose, there should be some class to generate these AnnotedBeans for HAMR. The <a href="https://github.com/KeyGenerator" class="user-mention">@KeyGenerator</a> is used to convert input key-value pair in map function to AnnotedBean. <a href="https://github.com/KeyGenerator" class="user-mention">@KeyGenerator</a> should point to a subclass of KeyGenerator. Here is the <a href="https://github.com/citymonkeymao/harm-examples">example</a> KeyGenerator for visitTimeBean. The function generate() will gain the input of mapper and return a list of AnnotedBean.</p>
 
-<pre><code>public class VisitKeyGenerator extends KeyGenerator{
-@SuppressWarnings("rawtypes")
-public VisitKeyGenerator(Context context) {
-    super(context);
-}
-public List&lt;AnnotedBean&gt; generate(Object keyin , Object valuein)
-{
-    List&lt;AnnotedBean&gt; ret = new ArrayList&lt;AnnotedBean&gt;();
-    String[] vals = valuein.toString().split("###");
-    VisitBean bean = new VisitBean();
-    bean.setMessageTime(Long.parseLong(vals[0]));
-    bean.setSessionId(vals[1]);
-    bean.setUrl(vals[2]);
-    ret.add(bean);
-    return ret;
-}
-}
-</code></pre>
+<div class="highlight highlight-source-java"><pre>    <span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-en">VisitKeyGenerator</span> <span class="pl-k">extends</span> <span class="pl-e">KeyGenerator</span>{
+    <span class="pl-k">@SuppressWarnings</span>(<span class="pl-s"><span class="pl-pds">"</span>rawtypes<span class="pl-pds">"</span></span>)
+    <span class="pl-k">public</span> <span class="pl-en">VisitKeyGenerator</span>(<span class="pl-smi">Context</span> <span class="pl-v">context</span>) {
+        <span class="pl-v">super</span>(context);
+    }
+    <span class="pl-k">public</span> <span class="pl-k">List&lt;<span class="pl-smi">AnnotedBean</span>&gt;</span> <span class="pl-en">generate</span>(<span class="pl-smi">Object</span> <span class="pl-v">keyin</span> , <span class="pl-smi">Object</span> <span class="pl-v">valuein</span>)
+    {
+        <span class="pl-k">List&lt;<span class="pl-smi">AnnotedBean</span>&gt;</span> ret <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-k">ArrayList&lt;<span class="pl-smi">AnnotedBean</span>&gt;</span>();
+        <span class="pl-k">String</span>[] vals <span class="pl-k">=</span> valuein<span class="pl-k">.</span>toString()<span class="pl-k">.</span>split(<span class="pl-s"><span class="pl-pds">"</span>###<span class="pl-pds">"</span></span>);
+        <span class="pl-smi">VisitBean</span> bean <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-smi">VisitBean</span>();
+        bean<span class="pl-k">.</span>setMessageTime(<span class="pl-smi">Long</span><span class="pl-k">.</span>parseLong(vals[<span class="pl-c1">0</span>]));
+        bean<span class="pl-k">.</span>setSessionId(vals[<span class="pl-c1">1</span>]);
+        bean<span class="pl-k">.</span>setUrl(vals[<span class="pl-c1">2</span>]);
+        ret<span class="pl-k">.</span>add(bean);
+        <span class="pl-k">return</span> ret;
+    }
+    }</pre></div>
 
 <p>The last work is to assemble these things together into a job</p>
 
-<pre><code>public class VisitTimeJob {
-public static void main(String[] args) throws Exception {
-    Configuration conf = new Configuration();
-    Job job = Job.getInstance(conf, "visit time");
-    GeneralJob.generalization(VisitBean.class, job);
-    FileInputFormat.addInputPath(job, new Path(args[0]));
-    FileOutputFormat.setOutputPath(job, new Path(args[1]));
-    System.exit(job.waitForCompletion(true) ? 0 : 1);
-}
+<div class="highlight highlight-source-java"><pre>    <span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-en">VisitTimeJob</span> {
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-k">void</span> <span class="pl-en">main</span>(<span class="pl-k">String</span>[] <span class="pl-v">args</span>) <span class="pl-k">throws</span> <span class="pl-smi">Exception</span> {
+        <span class="pl-smi">Configuration</span> conf <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-smi">Configuration</span>();
+        <span class="pl-smi">Job</span> job <span class="pl-k">=</span> <span class="pl-smi">Job</span><span class="pl-k">.</span>getInstance(conf, <span class="pl-s"><span class="pl-pds">"</span>visit time<span class="pl-pds">"</span></span>);
+        <span class="pl-smi">GeneralJob</span><span class="pl-k">.</span>generalization(<span class="pl-smi">VisitBean</span><span class="pl-k">.</span>class, job);
+        <span class="pl-smi">FileInputFormat</span><span class="pl-k">.</span>addInputPath(job, <span class="pl-k">new</span> <span class="pl-smi">Path</span>(args[<span class="pl-c1">0</span>]));
+        <span class="pl-smi">FileOutputFormat</span><span class="pl-k">.</span>setOutputPath(job, <span class="pl-k">new</span> <span class="pl-smi">Path</span>(args[<span class="pl-c1">1</span>]));
+        <span class="pl-smi">System</span><span class="pl-k">.</span>exit(job<span class="pl-k">.</span>waitForCompletion(<span class="pl-c1">true</span>) <span class="pl-k">?</span> <span class="pl-c1">0</span> <span class="pl-k">:</span> <span class="pl-c1">1</span>);
+    }
 
-}
-</code></pre>
+    }</pre></div>
 
 <p>Note, that if you want to custom your Reducer, you can set your own Reducer class to the job after generazation() is called.</p>
 
@@ -191,42 +187,41 @@ public static void main(String[] args) throws Exception {
 <h3>
 <a id="sumcounter" class="anchor" href="#sumcounter" aria-hidden="true"><span class="octicon octicon-link"></span></a>SumCounter</h3>
 
-<p>SumCounter count the total number of AnnotedBean received by reduce function. @TargetField is used to tell SumCounter where to put the result. Here is the <a href="https://github.com/citymonkeymao/harm-examples">example</a> of use SumCounter in classical MapReduce program word count.
-    <a href="https://github.com/Counters" class="user-mention">@Counters</a>(counters = {SumCounter.class})
-    <a href="https://github.com/Generator" class="user-mention">@Generator</a>(keyGeneratorClass = WordKeyGenerator.class)
-    public class WordCountBean extends AnnotedBean{
-        @GroupField
-        @SortField
-        public String word;</p>
+<p>SumCounter count the total number of AnnotedBean received by reduce function. @TargetField is used to tell SumCounter where to put the result. Here is the <a href="https://github.com/citymonkeymao/harm-examples">example</a> of use SumCounter in classical MapReduce program word count.</p>
 
-<pre><code>    @SkipIO
-    @TargetField(generateFrom = SumCounter.class)
-    private Integer count;
+<div class="highlight highlight-source-java"><pre>    @Counters(counters <span class="pl-k">=</span> {<span class="pl-smi">SumCounter</span><span class="pl-k">.</span>class})
+    @Generator(keyGeneratorClass <span class="pl-k">=</span> <span class="pl-smi">WordKeyGenerator</span><span class="pl-k">.</span>class)
+    <span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-en">WordCountBean</span> <span class="pl-k">extends</span> <span class="pl-e">AnnotedBean</span>{
+        <span class="pl-k">@GroupField</span>
+        <span class="pl-k">@SortField</span>
+        <span class="pl-k">public</span> <span class="pl-smi">String</span> word;
 
-    public String toString()
-    {
-        return word + "###" + count;
-    }
-}
-</code></pre>
+        <span class="pl-k">@SkipIO</span>
+        <span class="pl-k">@TargetField</span>(<span class="pl-c1">generateFrom</span> <span class="pl-k">=</span> <span class="pl-smi">SumCounter</span><span class="pl-k">.</span>class)
+        <span class="pl-k">private</span> <span class="pl-smi">Integer</span> count;
+
+        <span class="pl-k">public</span> <span class="pl-smi">String</span> <span class="pl-en">toString</span>()
+        {
+            <span class="pl-k">return</span> word <span class="pl-k">+</span> <span class="pl-s"><span class="pl-pds">"</span>###<span class="pl-pds">"</span></span> <span class="pl-k">+</span> count;
+        }
+    }</pre></div>
 
 <h3>
 <a id="setsumcounter" class="anchor" href="#setsumcounter" aria-hidden="true"><span class="octicon octicon-link"></span></a>SetSumCounter</h3>
 
 <p>SetSumCounter is used to count how many different value of a field presented in a reduce function. The ipcount in <a href="https://github.com/citymonkeymao/harm-examples">example</a> code illustrate usage of this counter: you have got a web site's visitor data which contain a url and user's IP. And you want to know how many indentical IP had visited each url. This is how SetSumCounter is used in IpCountBean:</p>
 
-<pre><code>@Counters(counters = {SetSumCounter.class})
-public class IpCountBean extends AnnotedBean{
-@SortField
-@GroupField
-private String url;
-@ReduceField(counterClass = {SetSumCounter.class})
-private String ip;
-@SkipIO
-@TargetField(generateFrom = SetSumCounter.class ,     fromField = "ip")
-private Integer ipNum;
-}
-</code></pre>
+<div class="highlight highlight-source-java"><pre>    @Counters(counters <span class="pl-k">=</span> {<span class="pl-smi">SetSumCounter</span><span class="pl-k">.</span>class})
+    <span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-en">IpCountBean</span> <span class="pl-k">extends</span> <span class="pl-e">AnnotedBean</span>{
+    <span class="pl-k">@SortField</span>
+    <span class="pl-k">@GroupField</span>
+    <span class="pl-k">private</span> <span class="pl-smi">String</span> url;
+    <span class="pl-k">@ReduceField</span>(<span class="pl-c1">counterClass</span> <span class="pl-k">=</span> {<span class="pl-smi">SetSumCounter</span><span class="pl-k">.</span>class})
+    <span class="pl-k">private</span> <span class="pl-smi">String</span> ip;
+    <span class="pl-k">@SkipIO</span>
+    <span class="pl-k">@TargetField</span>(<span class="pl-c1">generateFrom</span> <span class="pl-k">=</span> <span class="pl-smi">SetSumCounter</span><span class="pl-k">.</span>class ,     <span class="pl-c1">fromField</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>ip<span class="pl-pds">"</span></span>)
+    <span class="pl-k">private</span> <span class="pl-smi">Integer</span> ipNum;
+    }</pre></div>
 
 <p>When generateFrom assigned as SetSumCounter.class, fromField must be the name of the counting fields. And there should be @ReduceField on the counting fields.</p>
 
@@ -235,53 +230,52 @@ private Integer ipNum;
 
 <p>There are several functions provided in Counter that make writing a general counter easier. The maxtemprature in the <a href="https://github.com/citymonkeymao/harm-examples">example</a> illustrated how to write a custom counter. Assume you have a file contains temperature of some cities in every day, and you need to calculate the max temperature of each city. As finding maximum number is a very common situation, it is worth to spend some time to write a general counter. </p>
 
-<p>public class MaxTempratureCounter extends Counter{
-    private Double MaxTemprature;
-    <a href="https://github.com/SuppressWarnings" class="user-mention">@SuppressWarnings</a>("rawtypes")
-    public MaxTempratureCounter(Context context) {
-        super(context);
-        MaxTemprature = 0.0;
-    }</p>
+<div class="highlight highlight-source-java"><pre><span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-en">MaxTempratureCounter</span> <span class="pl-k">extends</span> <span class="pl-e">Counter</span>{
+    <span class="pl-k">private</span> <span class="pl-smi">Double</span> <span class="pl-smi">MaxTemprature</span>;
+    <span class="pl-k">@SuppressWarnings</span>(<span class="pl-s"><span class="pl-pds">"</span>rawtypes<span class="pl-pds">"</span></span>)
+    <span class="pl-k">public</span> <span class="pl-en">MaxTempratureCounter</span>(<span class="pl-smi">Context</span> <span class="pl-v">context</span>) {
+        <span class="pl-v">super</span>(context);
+        <span class="pl-smi">MaxTemprature</span> <span class="pl-k">=</span> <span class="pl-c1">0.0</span>;
+    }
 
-<pre><code>@Override
-public void count(AnnotedBean key) {
-     Map&lt;Field , ReduceField&gt; allReduceField = key.getReduceField();
-     Field tempratureField = allReduceField.keySet().iterator().next();
-     try {
-        Double temprature = (Double) tempratureField.get(key);
-        if(temprature &gt; MaxTemprature)
-        {
-            MaxTemprature = temprature;
+    <span class="pl-k">@Override</span>
+    <span class="pl-k">public</span> <span class="pl-k">void</span> <span class="pl-en">count</span>(<span class="pl-smi">AnnotedBean</span> <span class="pl-v">key</span>) {
+         <span class="pl-k">Map&lt;<span class="pl-smi">Field</span> , <span class="pl-smi">ReduceField</span>&gt;</span> allReduceField <span class="pl-k">=</span> key<span class="pl-k">.</span>getReduceField();
+         <span class="pl-smi">Field</span> tempratureField <span class="pl-k">=</span> allReduceField<span class="pl-k">.</span>keySet()<span class="pl-k">.</span>iterator()<span class="pl-k">.</span>next();
+         <span class="pl-k">try</span> {
+            <span class="pl-smi">Double</span> temprature <span class="pl-k">=</span> (<span class="pl-smi">Double</span>) tempratureField<span class="pl-k">.</span>get(key);
+            <span class="pl-k">if</span>(temprature <span class="pl-k">&gt;</span> <span class="pl-smi">MaxTemprature</span>)
+            {
+                <span class="pl-smi">MaxTemprature</span> <span class="pl-k">=</span> temprature;
+            }
+        } <span class="pl-k">catch</span> (<span class="pl-smi">IllegalArgumentException</span> e) {
+            e<span class="pl-k">.</span>printStackTrace();
+        } <span class="pl-k">catch</span> (<span class="pl-smi">IllegalAccessException</span> e) {
+            e<span class="pl-k">.</span>printStackTrace();
         }
-    } catch (IllegalArgumentException e) {
-        e.printStackTrace();
-    } catch (IllegalAccessException e) {
-        e.printStackTrace();
     }
-}
 
-@Override
-public boolean end(AnnotedBean ret)
-{
-    try {
-        Map&lt;Field , TargetField&gt; allTargetField = getTargetFields(ret);
-        allTargetField.keySet().iterator().next().set(ret, MaxTemprature);
-    } catch (IllegalArgumentException e) {
-        e.printStackTrace();
-    } catch (IllegalAccessException e) {
-        e.printStackTrace();
+    <span class="pl-k">@Override</span>
+    <span class="pl-k">public</span> <span class="pl-k">boolean</span> <span class="pl-en">end</span>(<span class="pl-smi">AnnotedBean</span> <span class="pl-v">ret</span>)
+    {
+        <span class="pl-k">try</span> {
+            <span class="pl-k">Map&lt;<span class="pl-smi">Field</span> , <span class="pl-smi">TargetField</span>&gt;</span> allTargetField <span class="pl-k">=</span> getTargetFields(ret);
+            allTargetField<span class="pl-k">.</span>keySet()<span class="pl-k">.</span>iterator()<span class="pl-k">.</span>next()<span class="pl-k">.</span>set(ret, <span class="pl-smi">MaxTemprature</span>);
+        } <span class="pl-k">catch</span> (<span class="pl-smi">IllegalArgumentException</span> e) {
+            e<span class="pl-k">.</span>printStackTrace();
+        } <span class="pl-k">catch</span> (<span class="pl-smi">IllegalAccessException</span> e) {
+            e<span class="pl-k">.</span>printStackTrace();
+        }
+        <span class="pl-k">return</span> <span class="pl-c1">true</span>;
     }
-    return true;
-}
-}
-</code></pre>
+    }</pre></div>
 
 <p>There getReduceField() function will return a Map object containing fields which have annotation @ReduceField &amp;&amp; counterClass is assigned to current counter class. The function getTargetFields() returns similiar to getReduceField(), but it returns the fields which have @TargetField pointing to current counter. </p>
 
 <p>4.preducer
 //under construction</p>
 
-<p>[<img src="http://getnotify.com/white.asp?eid=1483a959c3719abb" alt="tracking">]</p>
+<p><img src="http://getnotify.com/white.asp?eid=1483a959c3719abb" alt="tracking"></p>
 
       <footer class="site-footer">
         <span class="site-footer-owner"><a href="https://github.com/citymonkeymao/hamr">Hamr</a> is maintained by <a href="https://github.com/citymonkeymao">citymonkeymao</a>.</span>
