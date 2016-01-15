@@ -55,7 +55,7 @@ ____________________(group n)
   To finish all these works, you need to write mapper, reducer, sortComparator.....
 
    HAMR makes it much more simple. First put the fields which used to exist in key and value class into a class which extended AnnotedBean class.
-
+‘’‘java
     @Generator(keyGeneratorClass = VisitKeyGenerator.class)
     @Counters(counters = { VisitTimeCounter.class })
     public class VisitBean extends AnnotedBean {
@@ -73,19 +73,21 @@ ____________________(group n)
 	 @SkipIO
 	 private Long totalTime;
     }
-
+’‘’
  
 
   Let me first explain annotations in each field. These annotations tell HAMR how to sort and group beans into reducers. @SortField denote the field should be used to sort. The parameter level denotes the priority of that field. The higher the level, the higher the priority. In this [example][exampleCode], url has the highest priority in sorting, which means compare result of sessionId will have no effect unless two beans have the same url.On default, FieldComparator is used to compare fields. If you want to custom your field comparator, you can assign it as a parameter of @SortField. For example:
   
-
+‘’‘java
     @SortField(comparator=yourComparator.class)
+‘’‘
 Note that your Comparator class must extend FieldComparator and returns only 1,0 or -1 in compare function.
   The field totalTime is used to collect count result and is not read from mapper input. Thus, there is no necessary to pass it from mapper to reducer. @SkipIO is used to denote that this field need not to be transferred.
 
   Reducer will receive these beans and pass them to Counters. Counters define what to do in reduce function. And different Counters may accomplish different jobs in reduce side. Thus, a reducer may contain several Counters. Counter classes are assigned by annotation @Counters on the subclasses of AnnotedBean. In this [example][exampleCode], there is only one counter that is written by user. The usage of some general Counters will be described in the next section.
 
   Lets have a look how Counter classes look like
+  ‘’‘java
   public class VisitTimeCounter extends Counter {
 	private Long firstTime;
 	private Long lastTime;
@@ -114,6 +116,7 @@ Note that your Comparator class must extend FieldComparator and returns only 1,0
 		}
 	}
     }
+    ‘’‘
   There is two functions need to be rewritten in Counter class: count() and end(). Reducer will give every AnnotedBean from shuffle to each Counter by invoking their count function. At the end, Reducer will call end function of each Counter. The input of end function is the last non-null AnnotedBean from shuffle phrase. The returned boolean value tells the Reducer wether to write the result or not (counter can call context.write as the context is passed to counter in their construction method).If the result need not be write by reducer, the function end() should return false.
   Note that Counters are going to be a variable in reduce function, thus, the Counters will be built for each time reduce function is called. 
 
