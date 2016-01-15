@@ -116,7 +116,8 @@ Note that your Comparator class must extend FieldComparator and returns only 1,0
 		}
 	}
     }
-    ```
+```
+
   There is two functions need to be rewritten in Counter class: count() and end(). Reducer will give every AnnotedBean from shuffle to each Counter by invoking their count function. At the end, Reducer will call end function of each Counter. The input of end function is the last non-null AnnotedBean from shuffle phrase. The returned boolean value tells the Reducer wether to write the result or not (counter can call context.write as the context is passed to counter in their construction method).If the result need not be write by reducer, the function end() should return false.
   Note that Counters are going to be a variable in reduce function, thus, the Counters will be built for each time reduce function is called. 
 
@@ -182,7 +183,8 @@ Note that your Comparator class must extend FieldComparator and returns only 1,0
     		return word + "###" + count;
     	}
     }
-    ```
+```
+
 ###SetSumCounter
 SetSumCounter is used to count how many different value of a field presented in a reduce function. The ipcount in [example][exampleCode] code illustrate usage of this counter: you have got a web site's visitor data which contain a url and user's IP. And you want to know how many indentical IP had visited each url. This is how SetSumCounter is used in IpCountBean:
 ```java
